@@ -1,0 +1,9 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\oled.obj",
+".\Objects\adc.obj",
+".\Objects\MOTOR.obj",
+".\Objects\timer.obj",
+".\Objects\eeprom.obj" 
+TO ".\Objects\metal" 
+PRINT(".\Listings\metal.m51") RAMSIZE(256) 

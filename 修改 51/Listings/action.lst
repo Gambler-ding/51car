@@ -1,0 +1,50 @@
+C51 COMPILER V9.57.0.0   ACTION                                                            03/31/2023 21:50:02 PAGE 1   
+
+
+C51 COMPILER V9.57.0.0, COMPILATION OF MODULE ACTION
+OBJECT MODULE PLACED IN .\Objects\action.obj
+COMPILER INVOKED BY: D:\keil\keil51\C51\BIN\C51.EXE USER\ACTION\action.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\Listings;.\US
+                    -ER;.\USER\OLED;.\USER\MOTOR;.\USER\TIMER;.\USER\ADC;.\USER\UART;.\USER\EEPROM;.\USER\ACTION;.\USER\UART) DEBUG OBJECTEXT
+                    -END PRINT(.\Listings\action.lst) OBJECT(.\Objects\action.obj)
+
+line level    source
+
+   1          #include "stc15w4k.h"
+   2          #include "action.h"
+   3          #include "eeprom.h"
+   4          #include "motor.h"
+   5          //test for track
+   6          //track eight lines
+   7          void jump_line()
+   8          {
+   9   1              while(frontPortData==0x7f)track_PID(50);
+  10   1      }
+  11          void test_track()
+  12          {
+  13   1              u8 n=8;
+  14   1              while(n)
+  15   1              {
+  16   2                      track_PID(50);
+  17   2                      if(frontPortData==0x7f)
+  18   2                      {
+  19   3                              n--;
+  20   3                              jump_line();
+  21   3                      }
+  22   2              }
+  23   1              /*IapEraseSector(0x6600);
+  24   1              OLED_ShowNum(0,6,IapReadByte(0x6600),4,16);*/
+  25   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     42    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

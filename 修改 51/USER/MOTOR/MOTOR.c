@@ -26,7 +26,6 @@ sbit MOTOR_RB_BACK	= P4^1;
 
 u8 motor_counter;
 
-bdata bit track_flag;
 /*1000us*/
 void motor_tim1_init()
 {

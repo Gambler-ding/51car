@@ -1,11 +1,11 @@
-C51 COMPILER V9.57.0.0   ADC                                                               03/27/2023 21:48:32 PAGE 1   
+C51 COMPILER V9.57.0.0   ADC                                                               03/31/2023 21:50:02 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE ADC
 OBJECT MODULE PLACED IN .\Objects\adc.obj
 COMPILER INVOKED BY: D:\keil\keil51\C51\BIN\C51.EXE USER\adc\adc.C OPTIMIZE(8,SPEED) BROWSE INCDIR(.\Listings;.\USER;.\U
-                    -SER\OLED;.\USER\MOTOR;.\USER\TIMER;.\USER\ADC;.\USER\UART;.\USER\EEPROM) DEBUG OBJECTEXTEND PRINT(.\Listings\adc.lst) OB
-                    -JECT(.\Objects\adc.obj)
+                    -SER\OLED;.\USER\MOTOR;.\USER\TIMER;.\USER\ADC;.\USER\UART;.\USER\EEPROM;.\USER\ACTION;.\USER\UART) DEBUG OBJECTEXTEND PR
+                    -INT(.\Listings\adc.lst) OBJECT(.\Objects\adc.obj)
 
 line level    source
 
@@ -13,7 +13,7 @@ line level    source
    2          /*signal INPUT PIN is 5,ADC4   */
    3          #include "stc15w4k.h"
    4          #include "oled.h"
-   5          
+   5          #include "uart.h"
    6          #include "adc.h"
    7          #include "timer.h"
    8          #include <intrins.h>
@@ -28,10 +28,10 @@ line level    source
   17          #define ADC_SPEEDH  0x40 /*180 clocks*/
   18          #define ADC_SPEEDL  0x20 /*360 clocks*/
   19          #define ADC_SPEEDLL 0x00 /*540 clocks*/
-  20          uchar idata asc_buffer[10];
-  21          
-  22          unsigned char bdata AdcFlag;  
-  23          uint data AdcValue;                       
+  20          u8 idata asc_buffer[10];
+  21          u8 AdcCounter = 0;
+  22          u8 bdata AdcFlag;  
+  23          u16 data AdcValue;                        
   24          sbit AdcOver = AdcFlag ^ 0;
   25          
   26          void ADC_isr(void) interrupt 5  using 1  /*get ADC result ,中断向量地址002BH*/
@@ -62,7 +62,7 @@ line level    source
   51   1               switch(ADC_ch)
   52   1                      {
   53   2                      case 0:P1M1 = 0x01;P1M0 = 0x00;break; /*P1.7-P1.1准双向口,P1.0高阻输入*/
-C51 COMPILER V9.57.0.0   ADC                                                               03/27/2023 21:48:32 PAGE 2   
+C51 COMPILER V9.57.0.0   ADC                                                               03/31/2023 21:50:02 PAGE 2   
 
   54   2                      case 1:P1M1 = 0x02;P1M0 = 0x00;break; /*P1.7-P1.2准双向口,P1.1高阻输入,P1.0准双向口*/
   55   2                      case 2:P1M1 = 0x04;P1M0 = 0x00;break; /*P1.7-P1.3准双向口,P1.2高阻输入,P1.1-P1.0准双向口*/
@@ -126,7 +126,7 @@ line level    source
  113   1              for(i=j;i<8;i++)
  114   1                      {
  115   2                      user_buffer[i]=x*10;
-C51 COMPILER V9.57.0.0   ADC                                                               03/27/2023 21:48:32 PAGE 3   
+C51 COMPILER V9.57.0.0   ADC                                                               03/31/2023 21:50:02 PAGE 3   
 
  116   2                      x *= 10;
  117   2                      x -= user_buffer[i];
@@ -146,7 +146,7 @@ line level    source
  131          void power_show()
  132          {
  133   1                      u16 idata powerAdcBuffer[8];
- 134   1                  u8 cnt_i=0xff,AdcCounter = 0;
+ 134   1                  u8 cnt_i=0xff;
  135   1                      float floatReg=0.0,powerVolts;
  136   1                      initialADC( 7 );
  137   1                      StartADC( 7 );
@@ -173,9 +173,9 @@ line level    source
  158   1      
  159   1                      
  160   1                      AdcCounter ++;AdcCounter &= 0x07;
- 161   1                      //UART1send_Abyte(AdcCounter + '0');UART1send_Abyte(0x0d);UART1send_Abyte(0x0a);
- 162   1      }
- 163          
+ 161   1                      /*for test*/
+ 162   1                      //UART1send_Abyte(AdcCounter + '0');UART1send_Abyte(0x0d);UART1send_Abyte(0x0a);
+ 163   1      }
  164          
  165          
  166          
@@ -183,16 +183,17 @@ line level    source
  168          
  169          
  170          
+ 171          
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    874    ----
+   CODE SIZE        =    872    ----
    CONSTANT SIZE    =      3    ----
    XDATA SIZE       =   ----    ----
-   PDATA SIZE       =   ----    ----
-C51 COMPILER V9.57.0.0   ADC                                                               03/27/2023 21:48:32 PAGE 4   
+C51 COMPILER V9.57.0.0   ADC                                                               03/31/2023 21:50:02 PAGE 4   
 
-   DATA SIZE        =      3      29
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      4      28
    IDATA SIZE       =     10      16
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.

@@ -1,9 +1,7 @@
 #include "stc15w4k.h"
 #include "timer.h"
 #include <intrins.h>
-
-bit timer_10ms;
-
+u16 bdata timer_10ms=0;
 void DelayMs( unsigned int delay_time)
 {
 unsigned int delay_cnt;
@@ -41,6 +39,6 @@ void Timer1_isr() interrupt 3
 	TL1 = 0xE0;				//设置定时初始值
 	TH1 = 0xB1;				//设置定时初始值
 	TR1 = 1;				//定时器1开始计时
-	if(timer_10ms)timer_10ms=1;
+	timer_10ms++;
 }
 

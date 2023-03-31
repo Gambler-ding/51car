@@ -2,7 +2,7 @@
 /*signal INPUT PIN is 5,ADC4   */
 #include "stc15w4k.h"
 #include "oled.h"
-
+#include "uart.h"
 #include "adc.h"
 #include "timer.h"
 #include <intrins.h>
@@ -17,10 +17,10 @@
 #define ADC_SPEEDH  0x40 /*180 clocks*/
 #define ADC_SPEEDL  0x20 /*360 clocks*/
 #define ADC_SPEEDLL 0x00 /*540 clocks*/
-uchar idata asc_buffer[10];
-
-unsigned char bdata AdcFlag;  
-uint data AdcValue;			  
+u8 idata asc_buffer[10];
+u8 AdcCounter = 0;
+u8 bdata AdcFlag;  
+u16 data AdcValue;			  
 sbit AdcOver = AdcFlag ^ 0;
 
 void ADC_isr(void) interrupt 5  using 1  /*get ADC result ,中断向量地址002BH*/
@@ -131,7 +131,7 @@ void f_to_a(float x )
 void power_show()
 {
 		u16 idata powerAdcBuffer[8];
-	    u8 cnt_i=0xff,AdcCounter = 0;
+	    u8 cnt_i=0xff;
 		float floatReg=0.0,powerVolts;
 		initialADC( 7 );
 	  	StartADC( 7 );
@@ -158,6 +158,7 @@ void power_show()
 
 		
 		AdcCounter ++;AdcCounter &= 0x07;
+		/*for test*/
 		//UART1send_Abyte(AdcCounter + '0');UART1send_Abyte(0x0d);UART1send_Abyte(0x0a);
 }
 

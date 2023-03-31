@@ -23,7 +23,8 @@
 /*  |          D0 D1 D2 D3 D4 D5 D6           | back */
 /*  |_________________________________________|    */
 
-extern bdata bit track_flag;
+extern bdata float Integral_error;
+extern bdata unsigned char frontPortData,backPortData;
 void TestIrStatus(void);
 void track_PID(int pwm);
 void motor_pwm_set(float pwml,float pwmr);

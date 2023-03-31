@@ -312,7 +312,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>.\Listings;.\USER;.\USER\OLED;.\USER\MOTOR;.\USER\TIMER;.\USER\ADC;.\USER\UART;.\USER\EEPROM</IncludePath>
+              <IncludePath>.\Listings;.\USER;.\USER\OLED;.\USER\MOTOR;.\USER\TIMER;.\USER\ADC;.\USER\UART;.\USER\EEPROM;.\USER\ACTION;.\USER\UART</IncludePath>
             </VariousControls>
           </C51>
           <Ax51>
@@ -423,6 +423,26 @@
               <FileName>eeprom.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\USER\EEPROM\eeprom.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>ACTION</GroupName>
+          <Files>
+            <File>
+              <FileName>action.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\USER\ACTION\action.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>USART</GroupName>
+          <Files>
+            <File>
+              <FileName>uart.C</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\USER\UART\uart.C</FilePath>
             </File>
           </Files>
         </Group>

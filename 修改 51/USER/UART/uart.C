@@ -1,6 +1,5 @@
-
-//#include "stc8Axx.h"
 #include "stc15w4k.h"
+#include "uart.h"
 #include <intrins.h>
 /*----------------series define------------------------------*/
 
@@ -60,37 +59,52 @@ while(delay_time--)
 _nop_();
 }
 /*----------------------------------------------------------------------------------*/
-void UART1(void) interrupt 4           /*??????0023H*/
-     {
-     u8 character;
-     RI = 0;character = SBUF;
+void UART1(void) interrupt 4           /*中断接受数据*/
+{
+	u8 character;
+	RI = 0;character = SBUF;
 
-     if(UartFirstByte == 1)   {UARTbuffer[UART_cnt++] = character; }
+	if(UartFirstByte == 1)   {UARTbuffer[UART_cnt++] = character; }
 
-     if(character == 0xaa)      {UartFirstByte = 1;UART_cnt = 0;}
+	if(character==0xaa)      {UartFirstByte = 1;UART_cnt = 0;HostCommand=1}
 
-     if(character == 0xbb)      {UartFirstByte = 0;HostCommand = 1;}
+	if(character==0xbb)      {UartFirstByte = 0;HostCommand = 0;}
 
-     }
+}
 
-void UART1send_Abyte(u8 character)	/*??????*/
-     	{
-     	ES = 0;							/*???????*/
-     	SBUF = character;					/*?SBUF,????*/
-     	while(!TI) ;					/*??????*/
-     	TI = 0;							/*?TI*/
-     	ES = 1;
-		uartDelayMs(1);
-        //StatusLed = ~StatusLed;							/*???????*/
-        }
-void Uart1Init(void)		//9600bps@18.432MHz
+void UART1send_Abyte(u8 character)	/*发送u8数据*/
+{
+	while(!HostCommand);
+	HostCommand = 1;
+	ES = 0;							/*关闭串口保证设置*/
+	SBUF = character;				/*给SBUF赋值*/
+	while(!TI) ;					/*有中断时才可以运行*/
+	TI = 0;							/*中断TI请求开启*/
+	ES = 1;							/*开启串口保证设置*/
+	uartDelayMs(1);
+	HostCommand = 0;
+}
+void UART1send_AString(u8 *p)
+{
+	while(!HostCommand);
+	HostCommand = 1;
+	while(*p)
 	{
-	SCON = 0xD0;PCON &= 0x7F;//SCON = 0x50;PCON = 0x80;
-	AUXR &= 0xBF;		//???1???Fosc/12,?12T
-	AUXR &= 0xFE;		//??1?????1???????
-	TMOD &= 0x0F;		//?????1???
-	TMOD |= 0x20;		//?????1?8???????
-	TL1 = 0xFB;TH1 = 0xFB;ET1 = 0;TR1 = 1;		//TL1 = 0xf3;TH1 = 0xf3;TR1 = 1;
+		UART1send_Abyte(*p);
+		p++;
+	}
+	HostCommand = 0;
+}
+void Uart1Init(void)		//9600bps@24MHz
+	{
+	SCON = 0x50;		//8位数据,可变波特率
+	AUXR |= 0x40;		//定时器时钟1T模式
+	AUXR &= 0xFE;		//串口1选择定时器1为波特率发生器
+	TMOD &= 0x0F;		//设置定时器模式
+	TL1 = 0x8F;			//设置定时初始值
+	TH1 = 0xFD;			//设置定时初始值
+	ET1 = 0;			//禁止定时器中断
+	TR1 = 1;			//定时器1开始计时
 	UartFirstByte = 0;
 	ES = 1;
 	}

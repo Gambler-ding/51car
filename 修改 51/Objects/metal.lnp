@@ -4,6 +4,8 @@
 ".\Objects\adc.obj",
 ".\Objects\MOTOR.obj",
 ".\Objects\timer.obj",
-".\Objects\eeprom.obj" 
+".\Objects\eeprom.obj",
+".\Objects\action.obj",
+".\Objects\uart.obj" 
 TO ".\Objects\metal" 
 PRINT(".\Listings\metal.m51") RAMSIZE(256) 

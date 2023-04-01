@@ -2,6 +2,7 @@
 #include "action.h"
 #include "eeprom.h"
 #include "motor.h"
+#include "uart.h"
 //test for track
 //track eight lines
 void jump_line()
@@ -20,6 +21,5 @@ void test_track()
 			jump_line();
 		}
 	}
-	/*IapEraseSector(0x6600);
-	OLED_ShowNum(0,6,IapReadByte(0x6600),4,16);*/
+	
 }

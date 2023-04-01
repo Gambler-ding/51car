@@ -46,10 +46,10 @@ int main()
 		track_PID(40);*/
 		power_show();
 		//OLED_ShowNum(0,4,UartFlag>>4,4,16);
-		if(UartFlag>>4)
+		/*if(UartFlag>>4)
 		{
 			UART1send_AString(UARTbuffer);
 			UartFlag&=0x6f;
-		}
+		}*/
 	}
 }

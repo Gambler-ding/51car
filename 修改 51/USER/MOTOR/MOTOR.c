@@ -1,6 +1,8 @@
 #include "MOTOR.h"
 #include "stc15w4k.h"
 #include "oled.h"
+#include "uart.h"
+#include "adc.h"
 #include <intrins.h>
 
 #define FrontStatus P7
@@ -64,6 +66,7 @@ void motor_init()
 void track_PID(int pwm)
 {
 	static float Integral_error,Last_error,error = 0;
+	
 	int L_Pwm,R_Pwm;
 	code float P=4.5,I = 0.000001,D =9;
 	code u8 limit_pwm=50;

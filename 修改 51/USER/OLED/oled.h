@@ -47,7 +47,7 @@ void Write_IIC_Command(unsigned char IIC_Command);
 void Write_IIC_Data(unsigned char IIC_Data);
 void Write_IIC_Byte(unsigned char IIC_Byte);
 void IIC_Wait_Ack();
-
+void floattochar(float value,char* cSendBuff,int Decimals);
 extern const unsigned char code F6x8[][6];
 extern const unsigned char code F8x16[];
 extern const unsigned char code Hzk[][32];

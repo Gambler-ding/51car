@@ -6,7 +6,7 @@
 /*定时器3用作串口3的波特率发生器,定时器4用作串口4的波特率发生器*/
 //#define FOSC 11059200L          //系统频率
 #define FOSC 24000000L //18432000L
-#define BAUD 115200               //串口波特率
+#define BAUD 9600               //串口波特率
 #define NONE_PARITY     0       //无校验
 #define ODD_PARITY      1       //奇校验
 #define EVEN_PARITY     2       //偶校验
@@ -26,6 +26,7 @@
 #define S4TB8 0x08              //S4CON.3
 #define S4_S0 0x04              //P_SW2.2
 
+
 u8 bdata UartFlag;
 sbit Uart1BusyStatus = UartFlag ^ 0;
 sbit Uart2BusyStatus = UartFlag ^ 1;
@@ -42,7 +43,7 @@ sbit Uart1TXD         = P3 ^ 1;    /*PIN14,??1??*/
 
 void uartDelayMs( u16 delay_time)
 {
-u16 delay_cnt;
+u8 delay_cnt;
 while(delay_time--)
        {
        for(delay_cnt=0;delay_cnt<200;delay_cnt++)
@@ -61,43 +62,67 @@ _nop_();
 /*----------------------------------------------------------------------------------*/
 void UART1(void) interrupt 4           /*中断接受数据*/
 {
-	u8 character;
-	RI = 0;character = SBUF;
-
-	if(UartFirstByte == 1)   {UARTbuffer[UART_cnt++] = character; }
-
-	if(character==0xaa)      {UartFirstByte = 1;UART_cnt = 0;HostCommand=1}
-
-	if(character==0xbb)      {UartFirstByte = 0;HostCommand = 0;}
-
+	u8 idata character;
+	if (RI)
+	{
+		HostCommand = 1; 				//设置标志
+		RI = 0;							//清除RI位
+		character = SBUF;
+		if(character==0x3f)			{IAP_CONTR = 0x60;}//复位到IAP;
+		if(UartFirstByte == 1)   	{UARTbuffer[UART_cnt++] = character; }
+		if(character==0xaa)     	{UartFirstByte = 1;UART_cnt = 0;}
+		if(character==0xbb)      	{UartFirstByte = 0;HostCommand = 0;}
+		
+	}
+	if (TI)
+	{
+		TI=0; 							//清除TI位
+		
+	}
+	HostCommand = 0; 				//清忙标志
+	//UART1send_Abyte(character);
 }
 
 void UART1send_Abyte(u8 character)	/*发送u8数据*/
 {
-	while(!HostCommand);
-	HostCommand = 1;
-	ES = 0;							/*关闭串口保证设置*/
-	SBUF = character;				/*给SBUF赋值*/
-	while(!TI) ;					/*有中断时才可以运行*/
-	TI = 0;							/*中断TI请求开启*/
-	ES = 1;							/*开启串口保证设置*/
-	uartDelayMs(1);
-	HostCommand = 0;
+	while(HostCommand);
+	ACC=character;											//获取校验位P(PSW.0)
+	if(P)
+	{
+		#if (PARITYBIT==ODD_PARITY)
+		TB8=0;               	 //设置校验位为0
+		#elif (PARITYBIT==EVEN_PARITY)
+		TB8 = 1;               //设置校验位为1
+		#endif
+	}
+	else
+	{
+		#if (PARITYBIT == ODD_PARITY)
+		TB8 = 1;             		//设置校验位为1
+		#elif (PARITYBIT==EVEN_PARITY)
+		TB8 = 0;              	//设置校验位为0
+		#endif
+	}
+	HostCommand=1;
+	SBUF=ACC;
 }
 void UART1send_AString(u8 *p)
 {
-	while(!HostCommand);
-	HostCommand = 1;
 	while(*p)
 	{
 		UART1send_Abyte(*p);
 		p++;
 	}
-	HostCommand = 0;
 }
 void Uart1Init(void)		//9600bps@24MHz
-	{
-	SCON = 0x50;		//8位数据,可变波特率
+{
+	#if (PARITYBIT == NONE_PARITY)
+	SCON = 0x50;																		//8位可变波特率
+	#elif (PARITYBIT==ODD_PARITY)||(PARITYBIT==EVEN_PARITY)||(PARITYBIT == MARK_PARITY)
+	SCON = 0xda; 				//9位可变波特率，校验位初始为1
+	#elif (PARITYBIT==SPACE_PARITY)
+	SCON = 0xd2; 																	//9位可变波特率，校验位初始为0
+	#endif
 	AUXR |= 0x40;		//定时器时钟1T模式
 	AUXR &= 0xFE;		//串口1选择定时器1为波特率发生器
 	TMOD &= 0x0F;		//设置定时器模式
@@ -107,7 +132,8 @@ void Uart1Init(void)		//9600bps@24MHz
 	TR1 = 1;			//定时器1开始计时
 	UartFirstByte = 0;
 	ES = 1;
-	}
+	EA = 1;
+}
 
  /*-----------------------------------------------------------------------*/     
       

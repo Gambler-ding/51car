@@ -1,4 +1,4 @@
-C51 COMPILER V9.57.0.0   MAIN                                                              03/31/2023 21:50:01 PAGE 1   
+C51 COMPILER V9.57.0.0   MAIN                                                              04/01/2023 21:39:36 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE MAIN
@@ -57,19 +57,19 @@ line level    source
   46   2                      track_PID(40);*/
   47   2                      power_show();
   48   2                      //OLED_ShowNum(0,4,UartFlag>>4,4,16);
-  49   2                      if(UartFlag>>4)
+  49   2                      /*if(UartFlag>>4)
   50   2                      {
-  51   3                              UART1send_AString(UARTbuffer);
-  52   3                              UartFlag&=0x6f;
-  53   3                      }
-C51 COMPILER V9.57.0.0   MAIN                                                              03/31/2023 21:50:01 PAGE 2   
+  51   2                              UART1send_AString(UARTbuffer);
+  52   2                              UartFlag&=0x6f;
+  53   2                      }*/
+C51 COMPILER V9.57.0.0   MAIN                                                              04/01/2023 21:39:36 PAGE 2   
 
   54   2              }
   55   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =     58    ----
+   CODE SIZE        =     39    ----
    CONSTANT SIZE    =      5    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----

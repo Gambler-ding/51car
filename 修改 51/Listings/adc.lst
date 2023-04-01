@@ -1,4 +1,4 @@
-C51 COMPILER V9.57.0.0   ADC                                                               03/31/2023 21:50:02 PAGE 1   
+C51 COMPILER V9.57.0.0   ADC                                                               04/01/2023 21:39:36 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE ADC
@@ -62,7 +62,7 @@ line level    source
   51   1               switch(ADC_ch)
   52   1                      {
   53   2                      case 0:P1M1 = 0x01;P1M0 = 0x00;break; /*P1.7-P1.1准双向口,P1.0高阻输入*/
-C51 COMPILER V9.57.0.0   ADC                                                               03/31/2023 21:50:02 PAGE 2   
+C51 COMPILER V9.57.0.0   ADC                                                               04/01/2023 21:39:36 PAGE 2   
 
   54   2                      case 1:P1M1 = 0x02;P1M0 = 0x00;break; /*P1.7-P1.2准双向口,P1.1高阻输入,P1.0准双向口*/
   55   2                      case 2:P1M1 = 0x04;P1M0 = 0x00;break; /*P1.7-P1.3准双向口,P1.2高阻输入,P1.1-P1.0准双向口*/
@@ -126,7 +126,7 @@ line level    source
  113   1              for(i=j;i<8;i++)
  114   1                      {
  115   2                      user_buffer[i]=x*10;
-C51 COMPILER V9.57.0.0   ADC                                                               03/31/2023 21:50:02 PAGE 3   
+C51 COMPILER V9.57.0.0   ADC                                                               04/01/2023 21:39:36 PAGE 3   
 
  116   2                      x *= 10;
  117   2                      x -= user_buffer[i];
@@ -190,7 +190,7 @@ MODULE INFORMATION:   STATIC OVERLAYABLE
    CODE SIZE        =    872    ----
    CONSTANT SIZE    =      3    ----
    XDATA SIZE       =   ----    ----
-C51 COMPILER V9.57.0.0   ADC                                                               03/31/2023 21:50:02 PAGE 4   
+C51 COMPILER V9.57.0.0   ADC                                                               04/01/2023 21:39:36 PAGE 4   
 
    PDATA SIZE       =   ----    ----
    DATA SIZE        =      4      28

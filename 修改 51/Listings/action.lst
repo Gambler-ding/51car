@@ -1,4 +1,4 @@
-C51 COMPILER V9.57.0.0   ACTION                                                            03/31/2023 21:50:02 PAGE 1   
+C51 COMPILER V9.57.0.0   ACTION                                                            04/01/2023 21:39:36 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE ACTION
@@ -13,26 +13,26 @@ line level    source
    2          #include "action.h"
    3          #include "eeprom.h"
    4          #include "motor.h"
-   5          //test for track
-   6          //track eight lines
-   7          void jump_line()
-   8          {
-   9   1              while(frontPortData==0x7f)track_PID(50);
-  10   1      }
-  11          void test_track()
-  12          {
-  13   1              u8 n=8;
-  14   1              while(n)
-  15   1              {
-  16   2                      track_PID(50);
-  17   2                      if(frontPortData==0x7f)
-  18   2                      {
-  19   3                              n--;
-  20   3                              jump_line();
-  21   3                      }
-  22   2              }
-  23   1              /*IapEraseSector(0x6600);
-  24   1              OLED_ShowNum(0,6,IapReadByte(0x6600),4,16);*/
+   5          #include "uart.h"
+   6          //test for track
+   7          //track eight lines
+   8          void jump_line()
+   9          {
+  10   1              while(frontPortData==0x7f)track_PID(50);
+  11   1      }
+  12          void test_track()
+  13          {
+  14   1              u8 n=8;
+  15   1              while(n)
+  16   1              {
+  17   2                      track_PID(50);
+  18   2                      if(frontPortData==0x7f)
+  19   2                      {
+  20   3                              n--;
+  21   3                              jump_line();
+  22   3                      }
+  23   2              }
+  24   1              
   25   1      }
 
 

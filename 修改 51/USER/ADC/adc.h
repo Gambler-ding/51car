@@ -3,5 +3,5 @@
 
 void power_show();
 void f_to_a(float x );
-extern u8 idata asc_buffer[10];
+void Float_to_Byte(float f,unsigned char *temp);
 #endif

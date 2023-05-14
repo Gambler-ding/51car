@@ -1,200 +1,233 @@
-C51 COMPILER V9.57.0.0   ADC                                                               04/01/2023 21:39:36 PAGE 1   
+C51 COMPILER V9.57.0.0   ADC                                                               05/13/2023 18:46:44 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE ADC
 OBJECT MODULE PLACED IN .\Objects\adc.obj
-COMPILER INVOKED BY: D:\keil\keil51\C51\BIN\C51.EXE USER\adc\adc.C OPTIMIZE(8,SPEED) BROWSE INCDIR(.\Listings;.\USER;.\U
-                    -SER\OLED;.\USER\MOTOR;.\USER\TIMER;.\USER\ADC;.\USER\UART;.\USER\EEPROM;.\USER\ACTION;.\USER\UART) DEBUG OBJECTEXTEND PR
-                    -INT(.\Listings\adc.lst) OBJECT(.\Objects\adc.obj)
+COMPILER INVOKED BY: D:\keil\keil51\C51\BIN\C51.EXE USER\adc\adc.C COMPACT OPTIMIZE(9,SPEED) BROWSE INCDIR(.\Listings;.\
+                    -USER;.\USER\OLED;.\USER\MOTOR;.\USER\TIMER;.\USER\ADC;.\USER\UART;.\USER\ACTION;.\USER\UART;.\USER\PWM) DEBUG OBJECTEXTE
+                    -ND PRINT(.\Listings\adc.lst) OBJECT(.\Objects\adc.obj)
 
 line level    source
 
    1          
    2          /*signal INPUT PIN is 5,ADC4   */
    3          #include "stc15w4k.h"
-   4          #include "oled.h"
-   5          #include "uart.h"
-   6          #include "adc.h"
-   7          #include "timer.h"
-   8          #include <intrins.h>
-   9          
-  10          #define  uchar unsigned char
-  11          #define  uint unsigned int
-  12          
-  13          #define ADC_POWER 0x80   /*ADC power control bit*/
-  14          #define ADC_FLAG  0x10   /*ADC complete flag*/
-  15          #define ADC_START 0x08   /*ADC start control bit*/
-  16          #define ADC_SPEEDHH 0x60 /*90 clocks*/
-  17          #define ADC_SPEEDH  0x40 /*180 clocks*/
-  18          #define ADC_SPEEDL  0x20 /*360 clocks*/
-  19          #define ADC_SPEEDLL 0x00 /*540 clocks*/
-  20          u8 idata asc_buffer[10];
-  21          u8 AdcCounter = 0;
-  22          u8 bdata AdcFlag;  
-  23          u16 data AdcValue;                        
-  24          sbit AdcOver = AdcFlag ^ 0;
-  25          
-  26          void ADC_isr(void) interrupt 5  using 1  /*get ADC result ,中断向量地址002BH*/
-  27               {
-  28   1           ADC_CONTR &= ~ADC_FLAG;   /*clear ADC complte flag*/
-  29   1               AdcValue = ADC_RES;AdcValue &= 0x0003;AdcValue *= 256;
-  30   1           AdcValue += ADC_RESL ;
-  31   1      
-  32   1           AdcOver = 1;
-  33   1           }
-  34          
-  35          void StartADC( uchar ADC_ch)
-  36               {
-  37   1           ADC_CONTR = ADC_POWER | ADC_SPEEDHH | ADC_START | ADC_ch;
-  38   1           }
-  39          
-  40          void initialADC( uchar ADC_ch)
+   4          #include "uart.h"
+   5          #include "oled.h"
+   6          
+   7          #include <intrins.h>
+   8          
+   9          #define ADC_POWER 0x80   /**ADC power control bit**/
+  10          #define ADC_FLAG  0x10   /*ADC complete flag*/
+  11          #define ADC_START 0x08   /**ADC start control bit**/
+  12          #define ADC_SPEEDHH 0x60 /*90 clocks*/
+  13          #define ADC_SPEEDH  0x40 /*180 clocks*/
+  14          #define ADC_SPEEDL  0x20 /*360 clocks*/
+  15          #define ADC_SPEEDLL 0x00 /*540 clocks*/
+  16          u16 idata powerAdcBuffer[8];
+  17          u8 idata asc_buffer[10];
+  18          u8 idata AdcCounter=0;
+  19          u8 bdata AdcFlag;  
+  20          u16 data AdcValue;                        
+  21          sbit AdcOver = AdcFlag ^ 0;
+  22          void DelayMs(u16 delay_time)
+  23          {
+  24   1              unsigned int delay_cnt;
+  25   1              while(delay_time--)
+  26   1                         {
+  27   2                         for(delay_cnt=0;delay_cnt<200;delay_cnt++)
+  28   2                                       {
+  29   3                                       _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+  30   3                                       _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+  31   3                                       _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+  32   3                                       _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+  33   3                                       _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+  34   3                                       _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+  35   3                                       }
+  36   2                         _nop_();
+  37   2                         }
+  38   1              _nop_();
+  39   1      }
+  40          void ADC_isr(void) interrupt 5  using 1  /*get ADC result ,中断向量地址002BH*/
   41          {
-  42   1      
-  43   1      /*--------端口模式设置-------*/
-  44   1      /*  PxM1  PxM0       模式    */
-  45   1      /*    0     0     准双向口   */
-  46   1      /*    0     1     强推挽输出 */
-  47   1      /*    1     0     高阻输入   */
-  48   1      /*    1     1     开漏输出   */
-  49   1      /*---------------------------*/
-  50   1      
-  51   1               switch(ADC_ch)
-  52   1                      {
-  53   2                      case 0:P1M1 = 0x01;P1M0 = 0x00;break; /*P1.7-P1.1准双向口,P1.0高阻输入*/
-C51 COMPILER V9.57.0.0   ADC                                                               04/01/2023 21:39:36 PAGE 2   
+  42   1              ADC_CONTR &= ~ADC_FLAG;   /*clear ADC complte flag*/
+  43   1              AdcValue = ADC_RES;AdcValue &= 0x0003;AdcValue *= 256;
+  44   1              AdcValue += ADC_RESL ;
+  45   1              
+  46   1              AdcOver = 1;
+  47   1      }
+  48          
+  49          void StartADC( u8 ADC_ch)
+  50               {
+  51   1           ADC_CONTR = ADC_POWER | ADC_SPEEDLL | ADC_START | ADC_ch;
+  52   1           }
+  53          
+C51 COMPILER V9.57.0.0   ADC                                                               05/13/2023 18:46:44 PAGE 2   
 
-  54   2                      case 1:P1M1 = 0x02;P1M0 = 0x00;break; /*P1.7-P1.2准双向口,P1.1高阻输入,P1.0准双向口*/
-  55   2                      case 2:P1M1 = 0x04;P1M0 = 0x00;break; /*P1.7-P1.3准双向口,P1.2高阻输入,P1.1-P1.0准双向口*/
-  56   2                      case 3:P1M1 = 0x08;P1M0 = 0x00;break; /*P1.7-P1.4准双向口,P1.3高阻输入,P1.2-P1.0准双向口*/
-  57   2                      case 4:P1M1 = 0x10;P1M0 = 0x00;break; /*P1.7-P1.5准双向口,P1.4高阻输入,P1.3-P1.0准双向口*/
-  58   2                      case 5:P1M1 = 0x20;P1M0 = 0x00;break; /*P1.7-P1.6准双向口,P1.5高阻输入,P1.4-P1.0准双向口*/
-  59   2                      case 6:P1M1 = 0x40;P1M0 = 0x00;break; /*P1.7准双向口,P1.6高阻输入,P1.5-P1.0准双向口*/
-  60   2                      case 7:P1M1 = 0x80;P1M0 = 0x00;break; /*P1.7高阻输入,P1.6-P1.0准双向口*/
-  61   2                      default:P1M1 = 0xff;P1M0 = 0x00;          /*P1.7-P1.0高阻输入*/
-  62   2                      }
-  63   1           P1 = 0xff;     /*20190831*/
-  64   1               switch(ADC_ch)
-  65   1                      {
-  66   2                      case 0:P1ASF = 0x01;break; /*P1.0口作为模拟输入口*/
-  67   2                      case 1:P1ASF = 0x02;break; /*P1.1口作为模拟输入口*/
-  68   2                      case 2:P1ASF = 0x04;break; /*P1.2口作为模拟输入口*/
-  69   2                      case 3:P1ASF = 0x08;break; /*P1.3口作为模拟输入口*/
-  70   2                      case 4:P1ASF = 0x10;break; /*P1.4口作为模拟输入口*/
-  71   2                      case 5:P1ASF = 0x20;break; /*P1.5口作为模拟输入口*/
-  72   2                      case 6:P1ASF = 0x40;break; /*P1.6口作为模拟输入口*/
-  73   2                      case 7:P1ASF = 0x80;break; /*P1.7口作为模拟输入口*/
-  74   2                      default:P1ASF = 0xff;      /*P1.7-P1.0作为模拟输入口*/
-  75   2                      }
-  76   1      
-  77   1      //     ADC_RES =0;
-  78   1           ADC_CONTR = ADC_POWER | ADC_SPEEDHH | ADC_START | ADC_ch;   /*enable ADC*/
-  79   1           CLK_DIV |= 0x20;      /*ADRJ=1,2bit+8bit ADC数据格式*/
-  80   1           EADC = 1;  /*ADC转换中断 允许*/
-  81   1               AdcOver = 0;
-  82   1      
-  83   1      }
-  84          void f_to_a(float x )
-  85                  {
-  86   1              unsigned char data i,j,p;
-  87   1              unsigned char data user_buffer[8];
-  88   1              unsigned long data long_register;
-  89   1              p=0;
-  90   1              if(x < 0.0) {asc_buffer[p] = '-';x *= -1;}
-  91   1              else         {asc_buffer[p] = '+';}
-  92   1      
-  93   1              p++;
-  94   1      
-  95   1              long_register=x;
-  96   1      
-  97   1              x=x-long_register;
-  98   1      
-  99   1              j=0;
- 100   1              while(1)
- 101   1                      {
- 102   2                      user_buffer[j]=long_register%10;
- 103   2      
- 104   2                      if(long_register == 0)
- 105   2                             {
- 106   3                             if(j==0)  { j++;}
- 107   3                             break;
- 108   3                             }
- 109   2      
- 110   2                      long_register /= 10;
- 111   2                       j++;
- 112   2                      }
- 113   1              for(i=j;i<8;i++)
- 114   1                      {
- 115   2                      user_buffer[i]=x*10;
-C51 COMPILER V9.57.0.0   ADC                                                               04/01/2023 21:39:36 PAGE 3   
+  54          void initialADC( u8 ADC_ch)
+  55          {
+  56   1      
+  57   1      /*--------端口模式设置-------*/
+  58   1      /*  PxM1  PxM0       模式    */
+  59   1      /*    0     0     准双向口   */
+  60   1      /*    0     1     强推挽输出 */
+  61   1      /*    1     0     高阻输入   */
+  62   1      /*    1     1     开漏输出   */
+  63   1      /*---------------------------*/
+  64   1      
+  65   1               switch(ADC_ch)
+  66   1                      {
+  67   2                      case 0:P1M1 = 0x01;P1M0 = 0x00;break; /*P1.7-P1.1准双向口,P1.0高阻输入*/
+  68   2                      case 1:P1M1 = 0x02;P1M0 = 0x00;break; /*P1.7-P1.2准双向口,P1.1高阻输入,P1.0准双向口*/
+  69   2                      case 2:P1M1 = 0x04;P1M0 = 0x00;break; /*P1.7-P1.3准双向口,P1.2高阻输入,P1.1-P1.0准双向口*/
+  70   2                      case 3:P1M1 = 0x08;P1M0 = 0x00;break; /*P1.7-P1.4准双向口,P1.3高阻输入,P1.2-P1.0准双向口*/
+  71   2                      case 4:P1M1 = 0x10;P1M0 = 0x00;break; /*P1.7-P1.5准双向口,P1.4高阻输入,P1.3-P1.0准双向口*/
+  72   2                      case 5:P1M1 = 0x20;P1M0 = 0x00;break; /*P1.7-P1.6准双向口,P1.5高阻输入,P1.4-P1.0准双向口*/
+  73   2                      case 6:P1M1 = 0x40;P1M0 = 0x00;break; /*P1.7准双向口,P1.6高阻输入,P1.5-P1.0准双向口*/
+  74   2                      case 7:P1M1 = 0x80;P1M0 = 0x00;break; /*P1.7高阻输入,P1.6-P1.0准双向口*/
+  75   2                      default:P1M1 = 0xff;P1M0 = 0x00;          /*P1.7-P1.0高阻输入*/
+  76   2                      }
+  77   1           P1 = 0xff;     /*20190831*/
+  78   1               switch(ADC_ch)
+  79   1                      {
+  80   2                      case 0:P1ASF = 0x01;break; /*P1.0口作为模拟输入口*/
+  81   2                      case 1:P1ASF = 0x02;break; /*P1.1口作为模拟输入口*/
+  82   2                      case 2:P1ASF = 0x04;break; /*P1.2口作为模拟输入口*/
+  83   2                      case 3:P1ASF = 0x08;break; /*P1.3口作为模拟输入口*/
+  84   2                      case 4:P1ASF = 0x10;break; /*P1.4口作为模拟输入口*/
+  85   2                      case 5:P1ASF = 0x20;break; /*P1.5口作为模拟输入口*/
+  86   2                      case 6:P1ASF = 0x40;break; /*P1.6口作为模拟输入口*/
+  87   2                      case 7:P1ASF = 0x80;break; /*P1.7口作为模拟输入口*/
+  88   2                      default:P1ASF = 0xff;      /*P1.7-P1.0作为模拟输入口*/
+  89   2                      }
+  90   1      
+  91   1           ADC_RES =0;
+  92   1           ADC_CONTR = ADC_POWER | ADC_SPEEDLL | ADC_START | ADC_ch;   /*enable ADC*/
+  93   1              DelayMs(2);
+  94   1           CLK_DIV |= 0x20;      /*ADRJ=1,2bit+8bit ADC数据格式*/
+  95   1           EADC = 1;  /*ADC转换中断 允许*/
+  96   1               AdcOver = 0;
+  97   1      
+  98   1      }
+  99          void f_to_a(float x )
+ 100                  {
+ 101   1              u8 data i,j,p;
+ 102   1              u8 data user_buffer[8];
+ 103   1              u32 data long_register;
+ 104   1              p=0;
+ 105   1              if(x < 0.0) {asc_buffer[p] = '-';x *= -1;}
+ 106   1              else         {asc_buffer[p] = '+';}
+ 107   1      
+ 108   1              p++;
+ 109   1      
+ 110   1              long_register=x;
+ 111   1      
+ 112   1              x=x-long_register;
+ 113   1      
+ 114   1              j=0;
+ 115   1              while(1)
+C51 COMPILER V9.57.0.0   ADC                                                               05/13/2023 18:46:44 PAGE 3   
 
- 116   2                      x *= 10;
- 117   2                      x -= user_buffer[i];
- 118   2                      }
- 119   1              for(i=0;i<j;i++)
- 120   1                      {
- 121   2                      asc_buffer[p] = user_buffer[j-i-1]+'0';
- 122   2                      p++;
- 123   2                      }
- 124   1              asc_buffer[p] = '.';p++;
- 125   1              for(i=j;i<8;i++)
- 126   1                      {
- 127   2                      asc_buffer[p] = user_buffer[i]+'0';p++;
- 128   2                      }
- 129   1               }
- 130          
- 131          void power_show()
- 132          {
- 133   1                      u16 idata powerAdcBuffer[8];
- 134   1                  u8 cnt_i=0xff;
- 135   1                      float floatReg=0.0,powerVolts;
- 136   1                      initialADC( 7 );
- 137   1                      StartADC( 7 );
- 138   1                      while ( AdcOver == 0 )  {_nop_();}
- 139   1                      AdcOver = 0;
- 140   1                      powerAdcBuffer[AdcCounter] = AdcValue;
- 141   1                      
- 142   1                      AdcValue = 0;
- 143   1              for(cnt_i=0;cnt_i<8;cnt_i++)
- 144   1                              {
- 145   2                              AdcValue += powerAdcBuffer[cnt_i];
- 146   2                              }
- 147   1                      AdcValue /= 8; 
- 148   1                      floatReg = AdcValue;floatReg *= 5;floatReg /= 512;
- 149   1      
- 150   1                      powerVolts = floatReg;
- 151   1                      f_to_a(floatReg);
- 152   1                for(cnt_i=1;cnt_i<5;cnt_i++)
- 153   1                              {
- 154   2                              OLED_ShowChar(cnt_i*8,6,asc_buffer[cnt_i],16);DelayMs(1);
- 155   2                              }
- 156   1                      _nop_();
- 157   1                      OLED_ShowString(40,6,"V/",16);
- 158   1      
- 159   1                      
- 160   1                      AdcCounter ++;AdcCounter &= 0x07;
- 161   1                      /*for test*/
- 162   1                      //UART1send_Abyte(AdcCounter + '0');UART1send_Abyte(0x0d);UART1send_Abyte(0x0a);
- 163   1      }
- 164          
- 165          
- 166          
- 167          
- 168          
- 169          
- 170          
- 171          
+ 116   1                              {
+ 117   2                              user_buffer[j]=long_register%10;
+ 118   2      
+ 119   2                              if(long_register == 0)
+ 120   2                                         {
+ 121   3                                         if(j==0)  { j++;}
+ 122   3                                         break;
+ 123   3                                         }
+ 124   2      
+ 125   2                              long_register /= 10;
+ 126   2                               j++;
+ 127   2                              }
+ 128   1              for(i=j;i<8;i++)
+ 129   1                              {
+ 130   2                              user_buffer[i]=x*10;
+ 131   2                              x *= 10;
+ 132   2                              x -= user_buffer[i];
+ 133   2                              }
+ 134   1              for(i=0;i<j;i++)
+ 135   1                      {
+ 136   2                      asc_buffer[p] = user_buffer[j-i-1]+'0';
+ 137   2                      p++;
+ 138   2                      }
+ 139   1              asc_buffer[p] = '.';p++;
+ 140   1              for(i=j;i<8;i++)
+ 141   1                      {
+ 142   2                      asc_buffer[p] = user_buffer[i]+'0';p++;
+ 143   2                      }
+ 144   1               }
+ 145          
+ 146          /*
+ 147          将浮点数f转化为4个字节数据存放在byte[4]中
+ 148          */
+ 149          void Float_to_Byte(float f,u8 *temp)
+ 150          {
+ 151   1          unsigned char i = 0;
+ 152   1          unsigned char *l = (unsigned char *)&f;
+ 153   1          for (i = 0; i < 4; i++)
+ 154   1          {
+ 155   2              temp[i] = *l++; // float转BYTE
+ 156   2          }
+ 157   1      }
+ 158          
+ 159          
+ 160          
+ 161          
+ 162          void power_show()
+ 163          {
+ 164   1                  u8 cnt_i=0xff;
+ 165   1                      float floatReg=0.0;
+ 166   1                      initialADC( 7 );
+ 167   1                      StartADC( 7 );
+ 168   1              
+ 169   1                      while ( AdcOver == 0 )  {_nop_();}
+ 170   1                      AdcOver = 0;
+ 171   1                      powerAdcBuffer[AdcCounter] = AdcValue;
+ 172   1                      
+ 173   1                      //取平均值
+ 174   1                      AdcValue = 0;
+ 175   1              for(cnt_i=0;cnt_i<8;cnt_i++)
+ 176   1                              {
+ 177   2                              AdcValue += powerAdcBuffer[cnt_i];
+C51 COMPILER V9.57.0.0   ADC                                                               05/13/2023 18:46:44 PAGE 4   
+
+ 178   2                              }
+ 179   1                      AdcValue /= 8; 
+ 180   1                      
+ 181   1                      floatReg = AdcValue;floatReg *= 5;floatReg /= 512;
+ 182   1                              
+ 183   1                      f_to_a(floatReg);
+ 184   1                for(cnt_i=1;cnt_i<5;cnt_i++)
+ 185   1                              {
+ 186   2                              OLED_ShowChar(cnt_i*8,6,asc_buffer[cnt_i],16);DelayMs(1);
+ 187   2                              }
+ 188   1                      _nop_();
+ 189   1                      OLED_ShowString(40,6,"V/",16);
+ 190   1      
+ 191   1                      
+ 192   1                      AdcCounter ++;AdcCounter &= 0x07;
+ 193   1      
+ 194   1                      /*for test*/
+ 195   1                      //UART1send_Abyte(AdcCounter + '0');UART1send_Abyte(0x0d);UART1send_Abyte(0x0a);
+ 196   1      }
+ 197          
+ 198          
+ 199          
+ 200          
+ 201          
+ 202          
+ 203          
+ 204          
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    872    ----
+   CODE SIZE        =   1042    ----
    CONSTANT SIZE    =      3    ----
    XDATA SIZE       =   ----    ----
-C51 COMPILER V9.57.0.0   ADC                                                               04/01/2023 21:39:36 PAGE 4   
-
-   PDATA SIZE       =   ----    ----
-   DATA SIZE        =      4      28
-   IDATA SIZE       =     10      16
+   PDATA SIZE       =   ----      19
+   DATA SIZE        =      3      15
+   IDATA SIZE       =     27    ----
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.
 

@@ -1,49 +1,414 @@
-C51 COMPILER V9.57.0.0   ACTION                                                            04/01/2023 21:39:36 PAGE 1   
+C51 COMPILER V9.57.0.0   ACTION                                                            05/13/2023 18:46:44 PAGE 1   
 
 
 C51 COMPILER V9.57.0.0, COMPILATION OF MODULE ACTION
 OBJECT MODULE PLACED IN .\Objects\action.obj
-COMPILER INVOKED BY: D:\keil\keil51\C51\BIN\C51.EXE USER\ACTION\action.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\Listings;.\US
-                    -ER;.\USER\OLED;.\USER\MOTOR;.\USER\TIMER;.\USER\ADC;.\USER\UART;.\USER\EEPROM;.\USER\ACTION;.\USER\UART) DEBUG OBJECTEXT
-                    -END PRINT(.\Listings\action.lst) OBJECT(.\Objects\action.obj)
+COMPILER INVOKED BY: D:\keil\keil51\C51\BIN\C51.EXE USER\ACTION\action.c COMPACT OPTIMIZE(9,SPEED) BROWSE INCDIR(.\Listi
+                    -ngs;.\USER;.\USER\OLED;.\USER\MOTOR;.\USER\TIMER;.\USER\ADC;.\USER\UART;.\USER\ACTION;.\USER\UART;.\USER\PWM) DEBUG OBJE
+                    -CTEXTEND PRINT(.\Listings\action.lst) OBJECT(.\Objects\action.obj)
 
 line level    source
 
    1          #include "stc15w4k.h"
    2          #include "action.h"
-   3          #include "eeprom.h"
-   4          #include "motor.h"
-   5          #include "uart.h"
-   6          //test for track
-   7          //track eight lines
-   8          void jump_line()
-   9          {
-  10   1              while(frontPortData==0x7f)track_PID(50);
-  11   1      }
-  12          void test_track()
-  13          {
-  14   1              u8 n=8;
-  15   1              while(n)
-  16   1              {
-  17   2                      track_PID(50);
-  18   2                      if(frontPortData==0x7f)
-  19   2                      {
-  20   3                              n--;
-  21   3                              jump_line();
-  22   3                      }
-  23   2              }
-  24   1              
-  25   1      }
+   3          #include "motor.h"
+   4          #include "uart.h"
+   5          #include "PWM.h"
+   6          #include "oled.h"
+   7          
+   8          
+   9          #define track_line (mode?(frontPortData&0x20&&frontPortData&0x02):(backPortData&0x20&&backPortData&0x02))
+  10          #define track_angle  (frontPortData&0x08||frontPortData&0x04||frontPortData&0x10)
+  11          
+  12          //test for track
+  13          //track eight lines 
+  14          bit idata mode;
+  15          //碰到为低电平
+  16          sbit touch_key=P1 ^ 4;
+  17          void track_PID(char pwm)
+  18          {
+  19   1              
+  20   1              static idata char Last_error;
+  21   1              idata char error;
+  22   1              idata char L_Pwm,R_Pwm;
+  23   1              idata u8 D =pwm/2;
+  24   1              code u8 P=4,limit_pwm=60;
+  25   1              UART1send_Abyte(track_angle);
+  26   1              pwm=(mode?1:-1)*pwm;
+  27   1              switch(pwm<0?backPortData:frontPortData)
+  28   1                      {                                         //421 8421
+  29   2                              case 0x01:              error=8;        break;      //111 1110 0111 111
+  30   2                              case 0x03:              error=7;        break;      //111 1100 0011 111
+  31   2                              case 0x07:              error=6;        break;      //111 1000 0001 111
+  32   2                              case 0x02:              error=5;        break;      //111 1101 1011 111
+  33   2                              case 0x06:              error=4;        break;      //111 1001 1001 111
+  34   2                              case 0x0E:              error=3;        break;      //111 0001 1000 111
+  35   2                              case 0x04:              error=2;        break;      //111 1011 1101 111
+  36   2                              case 0x0C:              error=1;        break;      //111 0011 1100 111
+  37   2                              case 0x1C:              error=0;        break;      //110 0011 1100 011
+  38   2                              case 0x7f:              error=0;        break;      //000 0000 0000 000
+  39   2                              case 0x08:              error=0;        break;      //111 0111 1110 111
+  40   2                              case 0x18:              error=-1;       break;      //110 0111 1110 011
+  41   2                              case 0x38:              error=-2;       break;      //100 0111 1110 001
+  42   2                              case 0x10:              error=-3;       break;      //110 1111 1111 011
+  43   2                              case 0x30:              error=-4;       break;      //100 1111 1111 001
+  44   2                              case 0x70:              error=-5;       break;      //000 1111 1111 000
+  45   2                              case 0x20:              error=-6;       break;      //101 1111 1111 101
+  46   2                              case 0x60:              error=-7;       break;      //001 1111 1111 100
+  47   2                              case 0x40:              error=-8;       break;      //011 1111 1111 110
+  48   2                              /*case 0x00:            brake();        break;      //偏*/
+  49   2                              default :               //用与偏离后的措施
+  50   2                              {
+  51   3                                      switch(pwm>0?backPortData:frontPortData)
+  52   3                                      {
+  53   4                                              case 0x01:              error=8;        break;      //111 1110 0111 111
+C51 COMPILER V9.57.0.0   ACTION                                                            05/13/2023 18:46:44 PAGE 2   
+
+  54   4                                              case 0x03:              error=7;        break;      //111 1100 0011 111
+  55   4                                              case 0x07:              error=6;        break;      //111 1000 0001 111
+  56   4                                              case 0x02:              error=5;        break;      //111 1101 1011 111
+  57   4                                              case 0x06:              error=4;        break;      //111 1001 1001 111
+  58   4                                              case 0x0E:              error=3;        break;      //111 0001 1000 111
+  59   4                                              case 0x04:              error=2;        break;      //111 1011 1101 111
+  60   4                                              case 0x0C:              error=1;        break;      //111 0011 1100 111
+  61   4                                              case 0x1C:              error=0;        break;      //110 0011 1100 011
+  62   4                                              case 0x7f:              error=0;        break;      //000 0000 0000 000
+  63   4                                              case 0x08:              error=0;        break;      //111 0111 1110 111
+  64   4                                              case 0x18:              error=-1;       break;      //110 0111 1110 011
+  65   4                                              case 0x38:              error=-2;       break;      //100 0111 1110 001
+  66   4                                              case 0x10:              error=-3;       break;      //110 1111 1111 011
+  67   4                                              case 0x30:              error=-4;       break;      //100 1111 1111 001
+  68   4                                              case 0x70:              error=-5;       break;      //000 1111 1111 000
+  69   4                                              case 0x20:              error=-6;       break;      //101 1111 1111 101
+  70   4                                              case 0x60:              error=-7;       break;      //001 1111 1111 100
+  71   4                                              case 0x40:              error=-8;       break;      //011 1111 1111 110
+  72   4                                              case 0x00:              brake();        break;      //偏
+  73   4                                              default :               error=0;        return; 
+  74   4                                      }
+  75   3                              }
+  76   2                      }
+  77   1                      
+  78   1                      R_Pwm = (pwm-(error*P+(error-Last_error)*D));
+  79   1                      L_Pwm = (pwm+(error*P+(error-Last_error)*D));
+  80   1                      
+  81   1                      Last_error = error;
+  82   1                      //限制
+  83   1                      if(L_Pwm > (pwm+limit_pwm))
+  84   1                              L_Pwm = (pwm+limit_pwm);
+  85   1                      if(R_Pwm > (pwm+limit_pwm))
+  86   1                              R_Pwm = (pwm+limit_pwm);
+  87   1                      if(L_Pwm <(pwm-limit_pwm))
+  88   1                              L_Pwm = (pwm-limit_pwm);
+  89   1                      if(R_Pwm < (pwm-limit_pwm))
+  90   1                              R_Pwm = (pwm-limit_pwm);
+  91   1                      motor_pwm_set(L_Pwm,R_Pwm);
+  92   1                      /*UART1send_AFloat(Integral_error*I);
+  93   1                      UART1send_AFloat(L_Pwm);
+  94   1                      UART1send_AFloat(R_Pwm);
+  95   1                      UART1send_AFloat(error);
+  96   1                      UART1send_Abyte(0x00);
+  97   1                      UART1send_Abyte(0x00);
+  98   1                      UART1send_Abyte(0x80);
+  99   1                      UART1send_Abyte(0x7f);*/
+ 100   1                      motor_pwm_set(L_Pwm,R_Pwm);
+ 101   1      
+ 102   1      }
+ 103          
+ 104          void delay_ms(u16 i)
+ 105          {
+ 106   1              t_sum=0;
+ 107   1              timer_10ms=1;
+ 108   1              while(t_sum<=i);
+ 109   1              timer_10ms=0;
+ 110   1              t_sum=0;
+ 111   1      }
+ 112          void jump_line()
+ 113          {
+ 114   1              while(track_line)track_PID(20);
+ 115   1      }
+C51 COMPILER V9.57.0.0   ACTION                                                            05/13/2023 18:46:44 PAGE 3   
+
+ 116          //just for test
+ 117          void test_track()
+ 118          {
+ 119   1              idata u8 n=9;
+ 120   1              t_sum=0;
+ 121   1              timer_10ms=0;
+ 122   1              while(n)
+ 123   1              {
+ 124   2                      track_PID(40);
+ 125   2                      TestIrStatus();
+ 126   2                      if(track_line)
+ 127   2                      {
+ 128   3                              UART1send_AFloat(t_sum);
+ 129   3                              UART1send_Abyte(0x00);
+ 130   3                              UART1send_Abyte(0x00);
+ 131   3                              UART1send_Abyte(0x80);
+ 132   3                              UART1send_Abyte(0x7f);
+ 133   3                              timer_10ms=1;
+ 134   3                              n--;
+ 135   3                              jump_line();
+ 136   3                      }
+ 137   2              }
+ 138   1              timer_10ms=0;
+ 139   1              UART1send_AFloat(t_sum/8);
+ 140   1              UART1send_Abyte(0x00);
+ 141   1              UART1send_Abyte(0x00);
+ 142   1              UART1send_Abyte(0x80);
+ 143   1              UART1send_Abyte(0x7f);
+ 144   1              brake();
+ 145   1      }
+ 146          void turn_right()
+ 147          {
+ 148   1              brake();
+ 149   1              motor_pwm_set(10,-10);
+ 150   1              delay_ms(30);
+ 151   1              while(track_angle);
+ 152   1              while(!track_angle);
+ 153   1              brake();
+ 154   1      }
+ 155          void turn_left()
+ 156          {
+ 157   1              brake();
+ 158   1              motor_pwm_set(-10,10);
+ 159   1              delay_ms(30);
+ 160   1              while(track_angle);
+ 161   1              while(!track_angle);
+ 162   1              brake();
+ 163   1      }
+ 164          void r_in()
+ 165          {
+ 166   1              brake();
+ 167   1              motor_pwm_set(10,-10);
+ 168   1              while(track_angle);
+ 169   1              motor_pwm_set(10,10);
+ 170   1              while(!track_angle);
+ 171   1              while(track_angle);
+ 172   1              brake();
+ 173   1              lr_up();
+ 174   1              motor_pwm_set(-10,-10);
+ 175   1              while(!track_angle);
+ 176   1              while(track_angle);
+ 177   1              while(!track_angle);
+C51 COMPILER V9.57.0.0   ACTION                                                            05/13/2023 18:46:44 PAGE 4   
+
+ 178   1              brake();
+ 179   1              while(!track_line)track_PID(10);
+ 180   1              brake();
+ 181   1      }
+ 182          void l_in()
+ 183          {
+ 184   1              brake();
+ 185   1              motor_pwm_set(-10,10);
+ 186   1              while(track_angle);
+ 187   1              motor_pwm_set(10,10);
+ 188   1              while(!track_angle);
+ 189   1              while(track_angle);
+ 190   1              brake();
+ 191   1              lr_up();
+ 192   1              motor_pwm_set(-10,-10);
+ 193   1              while(!track_angle);
+ 194   1              while(track_angle);
+ 195   1              while(!track_angle);
+ 196   1              brake();
+ 197   1              while(!track_line)track_PID(5);
+ 198   1              brake();
+ 199   1      }
+ 200          void straight_way(u8 i)
+ 201          {
+ 202   1              u8 n=i;
+ 203   1              while(n)
+ 204   1              {
+ 205   2                      if(n!=1&&n!=i)
+ 206   2                      {
+ 207   3                              track_PID(40);
+ 208   3                      }
+ 209   2                      else 
+ 210   2                      {
+ 211   3                              track_PID(10);
+ 212   3                      }
+ 213   2                      TestIrStatus();
+ 214   2                      if(track_line)
+ 215   2                      {
+ 216   3                              n--;
+ 217   3                              if(!n)break;
+ 218   3                              jump_line();
+ 219   3                      }
+ 220   2              }
+ 221   1              brake();
+ 222   1      }
+ 223          void sw(char r[])
+ 224          {
+ 225   1              char* p=r;
+ 226   1              //mode==1 前进 mode==0 后退
+ 227   1              while( p[0] != '\0')
+ 228   1              {
+ 229   2                      switch (*p)
+ 230   2                      {
+ 231   3                              case 'l':
+ 232   3                                      l_in();break;
+ 233   3                              case 'r':
+ 234   3                                      r_in();break;
+ 235   3                              case 'L':
+ 236   3                                      if(*(p-1)=='L')
+ 237   3                                      {
+ 238   4                                              mode=!mode;
+ 239   4                                              turn_left();
+C51 COMPILER V9.57.0.0   ACTION                                                            05/13/2023 18:46:44 PAGE 5   
+
+ 240   4                                              mode=!mode;
+ 241   4                                              break;
+ 242   4                                      }
+ 243   3                                      else turn_left();break;
+ 244   3                              case 'R':
+ 245   3                                      if(*(p-1)=='R')
+ 246   3                                      {
+ 247   4                                              mode=!mode;
+ 248   4                                              turn_right();
+ 249   4                                              mode=!mode;
+ 250   4                                              break;
+ 251   4                                      }
+ 252   3                                      else turn_right();break;
+ 253   3                              case '+':
+ 254   3                                      mode=1;break;
+ 255   3                              case '-':
+ 256   3                                      mode=0;break;
+ 257   3                              case 'N':
+ 258   3                                      nomor();break;
+ 259   3                              case 'p':
+ 260   3                                      put_low();break;
+ 261   3                              case 'P':
+ 262   3                                      put_high();break;
+ 263   3                              case 'G':
+ 264   3                                      get();break;
+ 265   3                              case 'U':
+ 266   3                                      lr_up();break;
+ 267   3                              case 'D':
+ 268   3                                      lr_down();break;
+ 269   3                              default:
+ 270   3                              {
+ 271   4                                      straight_way(*p-'0');
+ 272   4                              }
+ 273   3                      }
+ 274   2                      p++;
+ 275   2              }
+ 276   1      }
+ 277          //PWM7_2左边
+ 278          //PWM6_2右边
+ 279          //50次-250次-2000次
+ 280          void start()
+ 281          {
+ 282   1              lr_up();
+ 283   1              PWM7_2_SetPwmWide(80);
+ 284   1              PWM6_2_SetPwmWide(100);
+ 285   1              PWM2_2_SetPwmWide(220);
+ 286   1              PWM5_SetPwmWide(70);
+ 287   1      }
+ 288          void nomor()
+ 289          {
+ 290   1              //PWM7_2_SetPwmWide(125);
+ 291   1              PWM6_2_SetPwmWide(150);
+ 292   1              delay_ms(30);
+ 293   1              PWM2_2_SetPwmWide(250);
+ 294   1              delay_ms(30);
+ 295   1              PWM5_SetPwmWide(200);
+ 296   1              delay_ms(50);
+ 297   1      }
+ 298          void lr_down()
+ 299          {
+ 300   1              PWM4_SetPwmWide(87);
+ 301   1              PWM3_SetPwmWide(202);
+C51 COMPILER V9.57.0.0   ACTION                                                            05/13/2023 18:46:44 PAGE 6   
+
+ 302   1              delay_ms(40);
+ 303   1      }
+ 304          void lr_up()
+ 305          {
+ 306   1              PWM4_SetPwmWide(150);
+ 307   1              PWM3_SetPwmWide(150);
+ 308   1              delay_ms(40);
+ 309   1      }
+ 310          void push()
+ 311          {
+ 312   1              loosen();
+ 313   1              PWM6_2_SetPwmWide(150);
+ 314   1              delay_ms(50);
+ 315   1              PWM2_2_SetPwmWide(80);
+ 316   1              delay_ms(50);
+ 317   1              PWM5_SetPwmWide(80);
+ 318   1              delay_ms(80);
+ 319   1      }
+ 320          //5 越大越后面
+ 321          void put_low()
+ 322          {
+ 323   1              brake();
+ 324   1              PWM6_2_SetPwmWide(250);
+ 325   1              delay_ms(60);
+ 326   1              PWM2_2_SetPwmWide(200);
+ 327   1              delay_ms(60);
+ 328   1              PWM2_2_SetPwmWide(150);
+ 329   1              delay_ms(80);
+ 330   1              PWM2_2_SetPwmWide(100);
+ 331   1              delay_ms(80);
+ 332   1              PWM2_2_SetPwmWide(50);
+ 333   1              delay_ms(70);
+ 334   1              PWM5_SetPwmWide(175);
+ 335   1              delay_ms(100);
+ 336   1              loosen();
+ 337   1              delay_ms(50);
+ 338   1      }
+ 339          void put_high()
+ 340          {
+ 341   1              mode=0;
+ 342   1              while(touch_key)
+ 343   1              {
+ 344   2                      mode=1;
+ 345   2                      track_PID(10);
+ 346   2                      mode=0;
+ 347   2              }
+ 348   1              brake();
+ 349   1              
+ 350   1              PWM6_2_SetPwmWide(250);
+ 351   1              delay_ms(50);
+ 352   1              PWM2_2_SetPwmWide(70);
+ 353   1              delay_ms(50);
+ 354   1              PWM5_SetPwmWide(200);
+ 355   1              delay_ms(80);
+ 356   1              loosen();
+ 357   1              delay_ms(50);
+ 358   1              nomor();
+ 359   1      }
+ 360          void touch()
+ 361          {
+ 362   1              PWM7_2_SetPwmWide(186);
+ 363   1      }
+C51 COMPILER V9.57.0.0   ACTION                                                            05/13/2023 18:46:44 PAGE 7   
+
+ 364          void loosen()
+ 365          {
+ 366   1              PWM7_2_SetPwmWide(125);
+ 367   1      }
+ 368          void get()
+ 369          {
+ 370   1              mode=1;
+ 371   1              push();
+ 372   1              while(track_line)track_PID(20);
+ 373   1              while(!track_line)track_PID(40);
+ 374   1              touch();
+ 375   1              jump_line();
+ 376   1              brake();
+ 377   1              nomor();
+ 378   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =     42    ----
-   CONSTANT SIZE    =   ----    ----
+   CODE SIZE        =   1917    ----
+   CONSTANT SIZE    =      2    ----
    XDATA SIZE       =   ----    ----
-   PDATA SIZE       =   ----    ----
-   DATA SIZE        =   ----       1
-   IDATA SIZE       =   ----    ----
-   BIT SIZE         =   ----    ----
+   PDATA SIZE       =   ----       6
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =      1       5
+   BIT SIZE         =      1    ----
 END OF MODULE INFORMATION.
 
 

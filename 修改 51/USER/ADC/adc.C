@@ -1,43 +1,57 @@
 
 /*signal INPUT PIN is 5,ADC4   */
 #include "stc15w4k.h"
-#include "oled.h"
 #include "uart.h"
-#include "adc.h"
-#include "timer.h"
+#include "oled.h"
+
 #include <intrins.h>
 
-#define  uchar unsigned char
-#define  uint unsigned int
-
-#define ADC_POWER 0x80   /*ADC power control bit*/
+#define ADC_POWER 0x80   /**ADC power control bit**/
 #define ADC_FLAG  0x10   /*ADC complete flag*/
-#define ADC_START 0x08   /*ADC start control bit*/
+#define ADC_START 0x08   /**ADC start control bit**/
 #define ADC_SPEEDHH 0x60 /*90 clocks*/
 #define ADC_SPEEDH  0x40 /*180 clocks*/
 #define ADC_SPEEDL  0x20 /*360 clocks*/
 #define ADC_SPEEDLL 0x00 /*540 clocks*/
+u16 idata powerAdcBuffer[8];
 u8 idata asc_buffer[10];
-u8 AdcCounter = 0;
+u8 idata AdcCounter=0;
 u8 bdata AdcFlag;  
 u16 data AdcValue;			  
 sbit AdcOver = AdcFlag ^ 0;
-
+void DelayMs(u16 delay_time)
+{
+	unsigned int delay_cnt;
+	while(delay_time--)
+		   {
+		   for(delay_cnt=0;delay_cnt<200;delay_cnt++)
+				 {
+				 _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+				 _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+				 _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+				 _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+				 _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+				 _nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();_nop_();
+				 }
+		   _nop_();
+		   }
+	_nop_();
+}
 void ADC_isr(void) interrupt 5  using 1  /*get ADC result ,中断向量地址002BH*/
-     {
-     ADC_CONTR &= ~ADC_FLAG;   /*clear ADC complte flag*/
-	 AdcValue = ADC_RES;AdcValue &= 0x0003;AdcValue *= 256;
-     AdcValue += ADC_RESL ;
+{
+	ADC_CONTR &= ~ADC_FLAG;   /*clear ADC complte flag*/
+	AdcValue = ADC_RES;AdcValue &= 0x0003;AdcValue *= 256;
+	AdcValue += ADC_RESL ;
+	
+	AdcOver = 1;
+}
 
-     AdcOver = 1;
+void StartADC( u8 ADC_ch)
+     {
+     ADC_CONTR = ADC_POWER | ADC_SPEEDLL | ADC_START | ADC_ch;
      }
 
-void StartADC( uchar ADC_ch)
-     {
-     ADC_CONTR = ADC_POWER | ADC_SPEEDHH | ADC_START | ADC_ch;
-     }
-
-void initialADC( uchar ADC_ch)
+void initialADC( u8 ADC_ch)
 {
 
 /*--------端口模式设置-------*/
@@ -74,8 +88,9 @@ void initialADC( uchar ADC_ch)
 		default:P1ASF = 0xff;	   /*P1.7-P1.0作为模拟输入口*/
 		}
 
-//     ADC_RES =0;
-     ADC_CONTR = ADC_POWER | ADC_SPEEDHH | ADC_START | ADC_ch;   /*enable ADC*/
+     ADC_RES =0;
+     ADC_CONTR = ADC_POWER | ADC_SPEEDLL | ADC_START | ADC_ch;   /*enable ADC*/
+	DelayMs(2);
      CLK_DIV |= 0x20;      /*ADRJ=1,2bit+8bit ADC数据格式*/
      EADC = 1;  /*ADC转换中断 允许*/
 	 AdcOver = 0;
@@ -83,39 +98,39 @@ void initialADC( uchar ADC_ch)
 }
 void f_to_a(float x )
         {
-	unsigned char data i,j,p;
-	unsigned char data user_buffer[8];
-        unsigned long data long_register;
-        p=0;
-        if(x < 0.0) {asc_buffer[p] = '-';x *= -1;}
-        else         {asc_buffer[p] = '+';}
+	u8 data i,j,p;
+	u8 data user_buffer[8];
+	u32 data long_register;
+	p=0;
+	if(x < 0.0) {asc_buffer[p] = '-';x *= -1;}
+	else         {asc_buffer[p] = '+';}
 
-        p++;
+	p++;
 
-        long_register=x;
+	long_register=x;
 
-        x=x-long_register;
+	x=x-long_register;
 
-        j=0;
-        while(1)
-                {
-                user_buffer[j]=long_register%10;
+	j=0;
+	while(1)
+			{
+			user_buffer[j]=long_register%10;
 
-                if(long_register == 0)
-                       {
-                       if(j==0)  { j++;}
-                       break;
-                       }
+			if(long_register == 0)
+				   {
+				   if(j==0)  { j++;}
+				   break;
+				   }
 
-                long_register /= 10;
-                 j++;
-                }
-        for(i=j;i<8;i++)
-                {
-                user_buffer[i]=x*10;
-                x *= 10;
-                x -= user_buffer[i];
-                }
+			long_register /= 10;
+			 j++;
+			}
+	for(i=j;i<8;i++)
+			{
+			user_buffer[i]=x*10;
+			x *= 10;
+			x -= user_buffer[i];
+			}
 	for(i=0;i<j;i++)
 	        {
 		asc_buffer[p] = user_buffer[j-i-1]+'0';
@@ -128,26 +143,43 @@ void f_to_a(float x )
                 }
          }
 
+/*
+将浮点数f转化为4个字节数据存放在byte[4]中
+*/
+void Float_to_Byte(float f,u8 *temp)
+{
+    unsigned char i = 0;
+    unsigned char *l = (unsigned char *)&f;
+    for (i = 0; i < 4; i++)
+    {
+        temp[i] = *l++; // float转BYTE
+    }
+}
+
+
+
+
 void power_show()
 {
-		u16 idata powerAdcBuffer[8];
 	    u8 cnt_i=0xff;
-		float floatReg=0.0,powerVolts;
+		float floatReg=0.0;
 		initialADC( 7 );
 	  	StartADC( 7 );
+	
 	  	while ( AdcOver == 0 )  {_nop_();}
 	  	AdcOver = 0;
 		powerAdcBuffer[AdcCounter] = AdcValue;
 	  	
+		//取平均值
 		AdcValue = 0;
       	for(cnt_i=0;cnt_i<8;cnt_i++)
 	  		{
 	  		AdcValue += powerAdcBuffer[cnt_i];
 	  		}
 		AdcValue /= 8; 
+		
 		floatReg = AdcValue;floatReg *= 5;floatReg /= 512;
-
-		powerVolts = floatReg;
+			
 		f_to_a(floatReg);
 	  for(cnt_i=1;cnt_i<5;cnt_i++)
 	  		{
@@ -158,6 +190,7 @@ void power_show()
 
 		
 		AdcCounter ++;AdcCounter &= 0x07;
+
 		/*for test*/
 		//UART1send_Abyte(AdcCounter + '0');UART1send_Abyte(0x0d);UART1send_Abyte(0x0a);
 }

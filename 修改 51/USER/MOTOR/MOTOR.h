@@ -23,11 +23,13 @@
 /*  |          D0 D1 D2 D3 D4 D5 D6           | back */
 /*  |_________________________________________|    */
 
-extern bdata float Integral_error;
 extern bdata unsigned char frontPortData,backPortData;
+extern idata bit timer_10ms;
+extern bdata unsigned int t_sum;
+void brake();
 void TestIrStatus(void);
-void track_PID(int pwm);
-void motor_pwm_set(float pwml,float pwmr);
+
+void motor_pwm_set(char pwml,char pwmr);
 void motor_init();
 #endif  /*_MOTOR_H_*/
 
